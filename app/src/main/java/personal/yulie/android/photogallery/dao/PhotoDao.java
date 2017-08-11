@@ -20,10 +20,6 @@ public class PhotoDao {
 
     private PhotoDao(){
         sPhotos = new ArrayList<>();
-        for (int i = 0; i < 50; i++) {
-            Photo p = new Photo(i + ".jpg");
-            sPhotos.add(p);
-        }
     }
 
     public static PhotoDao getInstance() {
@@ -32,6 +28,10 @@ public class PhotoDao {
 
     public List<Photo> getPhotos() {
         return sPhotos;
+    }
+
+    public void add(Photo photo) {
+        sPhotos.add(photo);
     }
 
     /* Checks if external storage is available to at least read */

@@ -1,8 +1,10 @@
 package personal.yulie.android.photogallery;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -14,6 +16,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
@@ -28,10 +31,11 @@ import personal.yulie.android.photogallery.dao.PhotoDao;
 
 public class PhotoGalleryFragment extends Fragment {
     public static final String LOG_TAG = "PhotoGalleryFragment";
-    public static final String CAMERA_FOLDER = "Camera";
+    public static final String ALBUM_FOLDER = "Camera";
     public static final int REQUEST_ALBUM = 0;
     private RecyclerView mGalleryRecyclerView;
     private GalleryAdapter mGalleryAdapter;
+    private List<Photo> mPhotos;
 
     public static PhotoGalleryFragment newInstance() {
         Bundle args = new Bundle();
@@ -44,48 +48,57 @@ public class PhotoGalleryFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo_gallery, container, false);
-        mGalleryRecyclerView = (RecyclerView) view.findViewById(R.id.recycler_photo_gallery);
+        mGalleryRecyclerView = (RecyclerView) view.findViewById(R.id.fragment_photo_gallery_recycler_view);
         mGalleryRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        init();
+        mGalleryAdapter = new GalleryAdapter(mPhotos);
+        mGalleryRecyclerView.setAdapter(mGalleryAdapter);
+        return view;
+    }
+
+    private void init() {
         PhotoDao photoDao = PhotoDao.getInstance();
-        List<Photo> photos = photoDao.getPhotos();
+        mPhotos = photoDao.getPhotos();
         if (PhotoDao.isExternalStorageReadable()) {
             File dir = PhotoDao.getPicStorageDir();
             Log.i(LOG_TAG, PhotoDao.getPicStorageDir().toString());
             if (ActivityCompat.checkSelfPermission(getContext(),
-                    android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
                         Manifest.permission.READ_EXTERNAL_STORAGE);
             }
-            String[] Albums = PhotoDao.getAlbumNames();
-            for (String s : Albums) {
+            String[] albumNames = PhotoDao.getAlbumNames();
+            for (String s : albumNames) {
                 Log.i(LOG_TAG, s);
             }
-            File file = new File(dir, "Camera");
-            if (file.exists()) {
-                String[] pics = file.list();
-                for (String pic :
-                        pics) {
-                    Log.i(LOG_TAG, pic);
+            File album = new File(dir, ALBUM_FOLDER);
+            if (album.exists()) {
+                String[] pics = album.list();
+                for (String p : pics) {
+//                    Log.i(LOG_TAG, p);
+                    File pic = new File(album, p);
+                    if (pic.isFile()) {
+                        photoDao.add(new Photo(pic));
+                    }
                 }
-                Log.i(LOG_TAG, String.valueOf(pics.length));
             }
 
         }
-        mGalleryAdapter = new GalleryAdapter(photos);
-        mGalleryRecyclerView.setAdapter(mGalleryAdapter);
-        return view;
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Uri uri = data.getData();
-        Log.i(PhotoGalleryFragment.LOG_TAG, uri.toString());
+        if (resultCode == Activity.RESULT_OK) {
+            Uri uri = data.getData();
+            Log.i(PhotoGalleryFragment.LOG_TAG, uri.toString());
+        }
     }
 
     private class GalleryViewHolder extends RecyclerView.ViewHolder {
         private TextView mTitle;
         private TextView mDate;
+        private ImageView mPhotoImageView;
         private Photo mPhoto;
 
         public GalleryViewHolder(LayoutInflater inflater, ViewGroup parent) {
@@ -93,12 +106,16 @@ public class PhotoGalleryFragment extends Fragment {
             //itemView == inflater.inflate(...)
             mTitle = (TextView) itemView.findViewById(R.id.galley_title);
             mDate = (TextView) itemView.findViewById(R.id.galley_date);
+            mPhotoImageView = itemView.findViewById(R.id.galley_photo);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent intent = new Intent(Intent.ACTION_PICK);
-                    intent.setType("image/*");
-                    startActivityForResult(intent,REQUEST_ALBUM);
+                    Log.i(LOG_TAG, String.valueOf(mPhoto == null));
+//                    Intent intent = new Intent(Intent.ACTION_PICK);
+//                    intent.setType("image/*");
+//                    startActivityForResult(intent,REQUEST_ALBUM);
+                    Intent intent = new Intent(getActivity(), PhotoActivity.class);
+                    startActivity(intent);
                 }
             });
         }
@@ -107,6 +124,23 @@ public class PhotoGalleryFragment extends Fragment {
             mPhoto = photo;
             mTitle.setText(mPhoto.getTitle());
             mDate.setText(mPhoto.getDate().toString());
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            String filePath = mPhoto.getPic().getAbsolutePath();
+            BitmapFactory.decodeFile(filePath, options);
+            int destWidth = mPhotoImageView.getWidth();
+            int destHeight = mPhotoImageView.getHeight();
+            float srcWidth = options.outWidth;
+            float srcHeight = options.outHeight;
+            int inSampleSize = 1;
+            if (srcHeight > destHeight || srcWidth > destWidth) {
+                float hScale = srcHeight / destHeight;
+                float wScale = srcWidth / destWidth;
+                inSampleSize = Math.round(hScale > wScale ? hScale : wScale);
+            }
+            options = new BitmapFactory.Options();
+            options.inSampleSize = inSampleSize;
+            mPhotoImageView.setImageBitmap(BitmapFactory.decodeFile(filePath,options));
         }
     }
 
