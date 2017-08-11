@@ -2,27 +2,25 @@ package personal.yulie.android.photogallery.bean;
 
 import java.io.File;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Created by android on 17-8-9.
  */
 
 public class Photo {
+    private UUID mId;
     private String mTitle;
     private Date mDate;
     private File mPic;
 
     public Photo(){
-        mDate = new Date();
+        mId = UUID.randomUUID();
     }
 
     public Photo(Date date) {
-        mDate = date;
-    }
-
-    public Photo(String title) {
         this();
-        mTitle = title;
+        mDate = date;
     }
 
     public Photo(String title, Date date) {
@@ -38,6 +36,10 @@ public class Photo {
     public Photo(File pic) {
         this(pic.getName(), pic);
         mPic = pic;
+    }
+
+    public UUID getId() {
+        return mId;
     }
 
     public String getTitle() {

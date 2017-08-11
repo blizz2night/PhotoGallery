@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import personal.yulie.android.photogallery.bean.Photo;
 
@@ -60,5 +61,11 @@ public class PhotoDao {
         return file;
     }
 
+    public Photo getPhotoById(UUID uuid) {
+        return null;
+    }
 
+    public Photo get(int pos) {
+        return sPhotos.get(pos);
+    }
 }

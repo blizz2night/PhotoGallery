@@ -4,7 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -24,6 +24,7 @@ import java.util.List;
 
 import personal.yulie.android.photogallery.bean.Photo;
 import personal.yulie.android.photogallery.dao.PhotoDao;
+import personal.yulie.android.photogallery.utils.BitmapUtils;
 
 /**
  * Created by android on 17-8-9.
@@ -100,6 +101,7 @@ public class PhotoGalleryFragment extends Fragment {
         private TextView mDate;
         private ImageView mPhotoImageView;
         private Photo mPhoto;
+        private int mPos;
 
         public GalleryViewHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.list_photo_item, parent, false));
@@ -114,33 +116,28 @@ public class PhotoGalleryFragment extends Fragment {
 //                    Intent intent = new Intent(Intent.ACTION_PICK);
 //                    intent.setType("image/*");
 //                    startActivityForResult(intent,REQUEST_ALBUM);
-                    Intent intent = new Intent(getActivity(), PhotoActivity.class);
+                    Intent intent = PhotoActivity.newIntent(getActivity(), mPos);
                     startActivity(intent);
                 }
             });
         }
 
-        public void bind(Photo photo) {
+        public void bind(int pos) {
+            Photo photo = PhotoDao.getInstance().get(pos);
             mPhoto = photo;
+            mPos = pos;
             mTitle.setText(mPhoto.getTitle());
             mDate.setText(mPhoto.getDate().toString());
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inJustDecodeBounds = true;
-            String filePath = mPhoto.getPic().getAbsolutePath();
-            BitmapFactory.decodeFile(filePath, options);
-            int destWidth = mPhotoImageView.getWidth();
-            int destHeight = mPhotoImageView.getHeight();
-            float srcWidth = options.outWidth;
-            float srcHeight = options.outHeight;
-            int inSampleSize = 1;
-            if (srcHeight > destHeight || srcWidth > destWidth) {
-                float hScale = srcHeight / destHeight;
-                float wScale = srcWidth / destWidth;
-                inSampleSize = Math.round(hScale > wScale ? hScale : wScale);
-            }
-            options = new BitmapFactory.Options();
-            options.inSampleSize = inSampleSize;
-            mPhotoImageView.setImageBitmap(BitmapFactory.decodeFile(filePath,options));
+            itemView.post(new Runnable() {
+                @Override
+                public void run() {
+                    int destWidth = mPhotoImageView.getWidth();
+                    int destHeight = mPhotoImageView.getHeight();
+                    String filePath = mPhoto.getPic().getAbsolutePath();
+                    Bitmap bitmap = BitmapUtils.getBitmap(filePath, destWidth, destHeight);
+                    mPhotoImageView.setImageBitmap(bitmap);
+                }
+            });
         }
     }
 
@@ -161,7 +158,7 @@ public class PhotoGalleryFragment extends Fragment {
         //Feed the data to ViewHolder
         @Override
         public void onBindViewHolder(GalleryViewHolder holder, int position) {
-            holder.bind(mPhotos.get(position));
+            holder.bind(position);
         }
 
         @Override
