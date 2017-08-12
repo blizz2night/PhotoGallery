@@ -11,9 +11,9 @@ public class BitmapUtils {
     public static Bitmap getBitmap(String filePath, int destWidth, int destHeight) {
 
         BitmapFactory.Options options = new BitmapFactory.Options();
-        //options.inJustDecodeBounds = true;
+        options.inJustDecodeBounds = true;
 
-        Bitmap orgin = BitmapFactory.decodeFile(filePath, options);
+        BitmapFactory.decodeFile(filePath, options);
 
         float srcWidth = options.outWidth;
         float srcHeight = options.outHeight;
